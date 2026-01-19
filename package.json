@@ -1,0 +1,8 @@
+{
+  "name": "stripe-calculator-bolivia",
+  "version": "1.0.0",
+  "description": "Stripe calculator with Bolivia timezone support",
+  "dependencies": {
+    "stripe": "^14.25.0"
+  }
+}

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stripe Transaction Calculator</title>
+  <style>
+    /* Premium Apple-Inspired Design */
+    :root {
+      --primary: #007AFF;
+      --primary-gradient: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+      --success: #34C759;
+      --success-gradient: linear-gradient(135deg, #34C759 0%, #30D158 100%);
+      --ink: #1C1C1E;
+      --secondary: #8E8E93;
+      --tertiary: #C7C7CC;
+      --background: linear-gradient(to bottom, #F2F2F7 0%, #E5E5EA 100%);
+      --card: rgba(255, 255, 255, 0.95);
+      --card-glass: rgba(255, 255, 255, 0.7);
+      --border: rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+      --radius: 14px;
+      --radius-lg: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      background: var(--background);
+      color: var(--ink);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* PIN Lock Screen */
+    .lock-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .lock-card {
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-lg);
+      padding: 50px 40px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .lock-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+
+    .lock-card h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .lock-card p {
+      color: var(--secondary);
+      margin-bottom: 30px;
+    }
+
+    .pin-input {
+      width: 100%;
+      padding: 16px 20px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1.5rem;
+      font-family: inherit;
+      text-align: center;
+      letter-spacing: 0.5em;
+      transition: all 0.3s ease;
+      background: white;
+      margin-bottom: 20px;
+    }
+
+    .pin-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+    }
+
+    .pin-error {
+      color: #FF3B30;
+      font-size: 0.9rem;
+      margin-top: -10px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .pin-error.show {
+      display: block;
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    /* Main Content */
+    .main-content {
+      display: none;
+    }
+
+    .main-content.unlocked {
+      display: block;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeIn 0.6s ease-out;
+      position: relative;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      color: var(--secondary);
+      font-size: 1.1rem;
+    }
+
+    .lock-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: rgba(255, 59, 48, 0.1);
+      border: 2px solid rgba(255, 59, 48, 0.3);
+      color: #FF3B30;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .lock-button:hover {
+      background: rgba(255, 59, 48, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 20px;
+      animation: slideUp 0.6s ease-out;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 0.95rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+    }
+
+    .date-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 16px 24px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .results {
+      display: none;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .results.show {
+      display: block;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--card-glass);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius);
+      padding: 20px;
+      border: 2px solid var(--border);
+      text-align: center;
+    }
+
+    .stat-card.primary {
+      border-color: var(--primary);
+      background: rgba(0, 122, 255, 0.05);
+    }
+
+    .stat-card.success {
+      border-color: var(--success);
+      background: rgba(52, 199, 89, 0.05);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .stat-subtitle {
+      font-size: 0.9rem;
+      color: var(--secondary);
+    }
+
+    .info-box {
+      background: rgba(0, 122, 255, 0.05);
+      border: 2px solid rgba(0, 122, 255, 0.2);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-top: 20px;
+    }
+
+    .info-box h3 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: var(--primary);
+    }
+
+    .info-box p {
+      font-size: 0.9rem;
+      color: var(--secondary);
+      margin: 4px 0;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--secondary);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .error {
+      background: rgba(255, 59, 48, 0.1);
+      border: 2px solid rgba(255, 59, 48, 0.3);
+      border-radius: var(--radius);
+      padding: 16px;
+      color: #FF3B30;
+      margin-top: 20px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .date-inputs {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+
+      .stat-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .lock-button {
+        position: static;
+        margin-top: 20px;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- PIN Lock Screen -->
+  <div id="lockScreen" class="lock-screen">
+    <div class="lock-card">
+      <div class="lock-icon">🔒</div>
+      <h1>Locked</h1>
+      <p>Enter PIN to access calculator</p>
+      <input 
+        type="password" 
+        id="pinInput" 
+        class="pin-input" 
+        placeholder="Enter PIN" 
+        inputmode="numeric"
+        pattern="[0-9]*"
+        autocomplete="off"
+      >
+      <div id="pinError" class="pin-error">❌ Incorrect PIN. Try again.</div>
+      <button class="btn btn-primary" onclick="checkPin()">Unlock</button>
+    </div>
+  </div>
+
+  <!-- Main Content (Hidden until unlocked) -->
+  <div id="mainContent" class="main-content">
+    <div class="container">
+      <div class="header">
+        <h1>💰 Stripe Calculator</h1>
+        <p>Calculate your net income and convert to Bolivianos</p>
+        <button class="lock-button" onclick="lockApp()">🔒 Lock</button>
+      </div>
+
+      <div class="card">
+        <form id="calculatorForm">
+          <div class="date-inputs">
+            <div class="form-group">
+              <label for="startDate">📅 Start Date</label>
+              <input type="date" id="startDate" required>
+            </div>
+            <div class="form-group">
+              <label for="endDate">📅 End Date</label>
+              <input type="date" id="endDate" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="calculateBtn">
+            Calculate Earnings
+          </button>
+        </form>
+
+        <div id="loading" class="loading" style="display: none;">
+          <div class="spinner"></div>
+          <p style="margin-top: 16px;">Fetching transactions from Stripe...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+      </div>
+
+      <div id="results" class="results">
+        <div class="card">
+          <h2 style="margin-bottom: 24px; font-size: 1.5rem;">📊 Results</h2>
+          
+          <div class="stat-grid">
+            <div class="stat-card primary">
+              <div class="stat-label">Total Transactions</div>
+              <div class="stat-value" id="transactionCount">0</div>
+              <div class="stat-subtitle">Successful payments</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-label">Gross Revenue</div>
+              <div class="stat-value" id="grossRevenue">$0.00</div>
+              <div class="stat-subtitle">Before fees</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-label">Net Income (USD)</div>
+              <div class="stat-value" id="netUSD">$0.00</div>
+              <div class="stat-subtitle">After Stripe fees</div>
+            </div>
+            
+            <div class="stat-card success">
+              <div class="stat-label">Net Income (BOB)</div>
+              <div class="stat-value" id="netBOB">Bs 0.00</div>
+              <div class="stat-subtitle">Bolivianos</div>
+            </div>
+          </div>
+
+          <div class="info-box">
+            <h3>💡 Calculation Details</h3>
+            <p><strong>Formula:</strong> Net = (Amount - $0.30) × 0.95</p>
+            <p><strong>Exchange Rate:</strong> 1 USD = 6.96 BOB</p>
+            <p><strong>Date Range:</strong> <span id="dateRange">-</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CORRECT_PIN = '2279';
+    const lockScreen = document.getElementById('lockScreen');
+    const mainContent = document.getElementById('mainContent');
+    const pinInput = document.getElementById('pinInput');
+    const pinError = document.getElementById('pinError');
+    const form = document.getElementById('calculatorForm');
+    const calculateBtn = document.getElementById('calculateBtn');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const results = document.getElementById('results');
+
+    // Check if already unlocked in session
+    if (sessionStorage.getItem('unlocked') === 'true') {
+      unlock();
+    }
+
+    // PIN input handling
+    pinInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        checkPin();
+      }
+      // Only allow numbers
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault();
+      }
+    });
+
+    function checkPin() {
+      const enteredPin = pinInput.value;
+      
+      if (enteredPin === CORRECT_PIN) {
+        sessionStorage.setItem('unlocked', 'true');
+        unlock();
+      } else {
+        pinError.classList.add('show');
+        pinInput.value = '';
+        pinInput.style.borderColor = '#FF3B30';
+        
+        setTimeout(() => {
+          pinError.classList.remove('show');
+          pinInput.style.borderColor = '';
+        }, 2000);
+      }
+    }
+
+    function unlock() {
+      lockScreen.style.display = 'none';
+      mainContent.classList.add('unlocked');
+      initializeCalculator();
+    }
+
+    function lockApp() {
+      sessionStorage.removeItem('unlocked');
+      mainContent.classList.remove('unlocked');
+      mainContent.style.display = 'none';
+      lockScreen.style.display = 'flex';
+      pinInput.value = '';
+      pinError.classList.remove('show');
+    }
+
+    function initializeCalculator() {
+      // Set default dates (last 30 days)
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      
+      document.getElementById('endDate').valueAsDate = today;
+      document.getElementById('startDate').valueAsDate = thirtyDaysAgo;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      if (!startDate || !endDate) {
+        showError('Please select both start and end dates');
+        return;
+      }
+
+      if (new Date(startDate) > new Date(endDate)) {
+        showError('Start date must be before end date');
+        return;
+      }
+
+      // Show loading
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      results.classList.remove('show');
+      calculateBtn.disabled = true;
+      calculateBtn.textContent = 'Calculating...';
+
+      try {
+        const response = await fetch('/.netlify/functions/fetch-stripe-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ startDate, endDate }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch data');
+        }
+
+        displayResults(data, startDate, endDate);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        loading.style.display = 'none';
+        calculateBtn.disabled = false;
+        calculateBtn.textContent = 'Calculate Earnings';
+      }
+    });
+
+    function displayResults(data, startDate, endDate) {
+      document.getElementById('transactionCount').textContent = data.transactionCount;
+      document.getElementById('grossRevenue').textContent = formatUSD(data.grossRevenue);
+      document.getElementById('netUSD').textContent = formatUSD(data.netUSD);
+      document.getElementById('netBOB').textContent = formatBOB(data.netBOB);
+      
+      const start = new Date(startDate).toLocaleDateString();
+      const end = new Date(endDate).toLocaleDateString();
+      document.getElementById('dateRange').textContent = `${start} - ${end}`;
+      
+      results.classList.add('show');
+      error.style.display = 'none';
+    }
+
+    function showError(message) {
+      error.textContent = `❌ Error: ${message}`;
+      error.style.display = 'block';
+      results.classList.remove('show');
+    }
+
+    function formatUSD(cents) {
+      return `$${(cents / 100).toFixed(2)}`;
+    }
+
+    function formatBOB(amount) {
+      return `Bs ${amount.toFixed(2)}`;
+    }
+  </script>
+</body>
+</html>
+
