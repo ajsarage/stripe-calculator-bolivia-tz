@@ -48,19 +48,37 @@ exports.handler = async (event) => {
     console.log(`Fetching transactions from ${startDate} to ${endDate}`);
     console.log(`Unix timestamps: ${startTimestamp} to ${endTimestamp}`);
 
-    // Fetch payment intents with proper date filtering
-    const paymentIntents = await stripe.paymentIntents.list({
-      limit: 100,
-      created: {
-        gte: startTimestamp,
-        lte: endTimestamp,
-      },
-    });
+    // Fetch ALL payment intents with pagination
+    let allPaymentIntents = [];
+    let hasMore = true;
+    let startingAfter = null;
 
-    console.log(`Found ${paymentIntents.data.length} total payment intents`);
+    while (hasMore) {
+      const params = {
+        limit: 100,
+        created: {
+          gte: startTimestamp,
+          lte: endTimestamp,
+        },
+      };
+
+      if (startingAfter) {
+        params.starting_after = startingAfter;
+      }
+
+      const response = await stripe.paymentIntents.list(params);
+      allPaymentIntents = allPaymentIntents.concat(response.data);
+      
+      hasMore = response.has_more;
+      if (hasMore && response.data.length > 0) {
+        startingAfter = response.data[response.data.length - 1].id;
+      }
+    }
+
+    console.log(`Found ${allPaymentIntents.length} total payment intents`);
 
     // Filter for succeeded payments only
-    const succeededPayments = paymentIntents.data.filter(
+    const succeededPayments = allPaymentIntents.filter(
       (pi) => pi.status === 'succeeded'
     );
 
