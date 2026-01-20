@@ -88,14 +88,11 @@ exports.handler = async (event) => {
     const transactionCount = succeededPayments.length;
     const grossRevenue = succeededPayments.reduce((sum, pi) => sum + pi.amount, 0) / 100;
 
-    // Stripe fee calculation: 2.9% + $0.30 per transaction
-    const stripeFees = succeededPayments.reduce((sum, pi) => {
-      const amount = pi.amount / 100;
-      const fee = amount * 0.029 + 0.30;
-      return sum + fee;
-    }, 0);
-
-    const netUSD = grossRevenue - stripeFees;
+    // Fee calculation: Subtract $0.30 per transaction, then apply 5% fee
+    // Formula: (Gross - (Count × $0.30)) × 0.95
+    const fixedFees = transactionCount * 0.30;
+    const afterFixedFees = grossRevenue - fixedFees;
+    const netUSD = afterFixedFees * 0.95;
 
     // Convert to Bolivianos (BOB)
     const exchangeRate = 6.96; // 1 USD = 6.96 BOB
@@ -107,7 +104,8 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         transactionCount,
         grossRevenue: parseFloat(grossRevenue.toFixed(2)),
-        stripeFees: parseFloat(stripeFees.toFixed(2)),
+        fixedFees: parseFloat(fixedFees.toFixed(2)),
+        afterFixedFees: parseFloat(afterFixedFees.toFixed(2)),
         netUSD: parseFloat(netUSD.toFixed(2)),
         netBOB: parseFloat(netBOB.toFixed(2)),
         dateRange: {
